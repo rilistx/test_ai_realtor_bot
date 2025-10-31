@@ -1,0 +1,25 @@
+# pycharm
+.idea/
+.DS_Store
+
+# logs
+*.log
+
+# venv
+.venv/
+
+# envs
+.env.dev
+
+# json
+service_account.json
+
+# pipenv
+Pipfile
+Pipfile.lock
+
+# byte-compiled
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
