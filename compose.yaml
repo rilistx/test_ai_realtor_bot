@@ -1,0 +1,42 @@
+services:
+  backend:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    image: backend/backend:latest
+    container_name: backend
+    restart: always
+    command: ./commands/backend.sh
+    env_file:
+      - .env.dev
+    depends_on:
+      - postgres
+    networks:
+      - bot_network
+
+  postgres:
+    image: postgres:17.6-alpine
+    container_name: postgres
+    restart: always
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    env_file:
+      - .env.dev
+    networks:
+      - bot_network
+
+  adminer:
+    image: adminer:latest
+    container_name: adminer
+    restart: on-failure
+    depends_on:
+      - postgres
+    networks:
+      - bot_network
+
+volumes:
+  postgres_data:
+
+networks:
+  bot_network:
+    driver: bridge

@@ -15,7 +15,8 @@ class UserModel(BaseModel):
     telegram_user_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
     user_messages: Mapped[str] = mapped_column(String, nullable=False)
     agent_messages: Mapped[str] = mapped_column(String, nullable=False)
-    filters: Mapped[JSON] = mapped_column(JSON, nullable=False)
+    json_filters: Mapped[JSON] = mapped_column(JSON, nullable=False)
+    json_tira: Mapped[JSON | None] = mapped_column(JSON, nullable=True)
     telegram_phone_number: Mapped[str] = mapped_column(String, nullable=False)
     data_created: Mapped[DateTime] = mapped_column(
         DateTime(timezone=True),

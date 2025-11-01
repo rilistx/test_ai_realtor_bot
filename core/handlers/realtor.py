@@ -8,8 +8,6 @@ from aiogram.types import Message, ReplyKeyboardRemove
 from aiogram.filters import CommandStart, Command, StateFilter
 from aiogram.fsm.context import FSMContext
 
-from openai import OpenAI
-
 from core.filters import ContactFilter
 from core.keyboards import realtor_button
 from core.states import RealtorState
@@ -111,22 +109,16 @@ async def restart(
 async def question(
         message: Message,
         state: FSMContext,
-        client: OpenAI,
 ) -> None:
-    await message.answer(
-        text="⏳ Хвилину, обробляю ваш запит...",
-    )
-
     changed = await parse_gpt_message(
         message=message.text,
         state=state,
-        client=client,
     )
 
     state_data = await state.get_data()
 
     await state.update_data({
-        "user_messages": state_data["user_messages"] + "\n\n" + message.text if state_data["user_messages"] else message.text,
+        "user_messages": state_data["user_messages"] + "\n\n" + message.text if state_data["user_messages"] is not None else message.text,
     })
 
     if changed:
@@ -213,8 +205,7 @@ async def completed(
     state_data = await state.get_data()
 
     text = (
-        "✅ <b>Успішно заповнена форма</b>\n"
-        "Чекайте, скоро з вами звʼяжеться наш менеджер!"
+        "Дякую, я скоро з вами звʼяжуся!"
     )
 
     await state.update_data({
@@ -231,8 +222,8 @@ async def completed(
     url = "https://bots2.tira.com.ua:8443/api/get_apartments"
     payload = {
         "key": envs.tira_api_key,
-        "limit": 3,
-        # "offset": 0,
+        "limit": '3',
+        "offset": '0',
     }
     headers = {
         "Content-Type": "application/json"
@@ -245,35 +236,33 @@ async def completed(
             payload["district_id"] = district.id
 
     if state_data["filters"]["rooms"] is not None:
-        payload["rooms_in"] = int(state_data["filters"]["rooms"])
+        payload["rooms_id"] = state_data["filters"]["rooms"]
 
     if state_data["filters"]["type"] is not None:
         condition = await DistrictModel.filter(name=state_data["filters"]["type"]).first()
 
         if condition is not None:
-            payload["condition_in"] = condition.id
-
+            payload["condition_id"] = condition.id
 
     async with aiohttp.ClientSession() as session:
         async with session.post(url, json=payload, headers=headers, ssl=False) as response:
             if response.status == 200:
-                # data = await response.json()
-                # print(data)  # output: {'status': 'error', 'message': 'wrong offset', 'items': None}
-                pass
+                data = await response.json()
+
+                await UserModel.create(
+                    telegram_user_id=state_data["telegram_user_id"],
+                    user_messages=state_data["user_messages"],
+                    agent_messages=state_data["agent_messages"],
+                    json_filters=json.dumps(state_data["filters"]),
+                    json_tira=json.dumps(data),
+                    telegram_phone_number=str(message.contact.phone_number),
+                )
             else:
                 text = await response.text()
 
                 raise (
                     f"Помилка {response.status}: {text}"
                 )
-
-    await UserModel.create(
-        telegram_user_id=state_data["telegram_user_id"],
-        user_messages=state_data["user_messages"],
-        agent_messages=state_data["agent_messages"],
-        filters=json.dumps(state_data["filters"]),
-        telegram_phone_number=str(message.contact.phone_number),
-    )
 
     await state.clear()
 

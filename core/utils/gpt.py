@@ -1,10 +1,13 @@
 import json
 
 from aiogram.fsm.context import FSMContext
-from openai import OpenAI
+
+from openai import AsyncOpenAI, DefaultAioHttpClient
+
+from core.config.loader import envs
 
 
-async def parse_gpt_message(message: str, state: FSMContext, client: OpenAI):
+async def parse_gpt_message(message: str, state: FSMContext):
     prompt = f"""
     Ти — ШІ-асистент ріелтора.
     Твоє завдання — витягти з повідомлення користувача значення:
@@ -26,35 +29,38 @@ async def parse_gpt_message(message: str, state: FSMContext, client: OpenAI):
     Текст користувача: {message}
     """
 
-    response = client.chat.completions.create(
-        model="gpt-5-mini",
-        messages=[
-            {"role": "developer", "content": "Talk like a pirate."},
-            {
-                "role": "user",
-                "content": prompt,
-            },
-        ],
-    )
+    async with AsyncOpenAI(
+        api_key=envs.open_api_key,
+        http_client=DefaultAioHttpClient(),
+    ) as client:
+        response = await client.chat.completions.create(
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt,
+                }
+            ],
+            model="gpt-5-mini",
+        )
 
-    result = response.choices[0].message.content
+        result = response.choices[0].message.content
 
-    try:
-        result = json.loads(result)
-    except json.JSONDecodeError:
-        print("Unable to convert string to dictionary")
+        try:
+            result = json.loads(result)
+        except json.JSONDecodeError:
+            print("Unable to convert string to dictionary")
 
-    state_data = await state.get_data()
-    changed = False
+        state_data = await state.get_data()
+        changed = False
 
-    filters = state_data["filters"]
+        filters = state_data["filters"]
 
-    for key, value in result.items():
-        if value != 'None' and state_data['filters'][key] is None:
-            filters[key] = value
-            changed = True
+        for key, value in result.items():
+            if value != 'None' and state_data['filters'][key] is None:
+                filters[key] = value
+                changed = True
 
-    if changed:
-        await state.update_data({"filters": filters})
+        if changed:
+            await state.update_data({"filters": filters})
 
-    return changed
+        return changed

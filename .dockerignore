@@ -1,0 +1,28 @@
+# pycharm
+**/.idea/
+**/.DS_Store
+
+#git
+**/.gitignore
+
+# flake8
+**/.flake8
+
+# logs
+**/*.log
+
+# venv
+**/.venv/
+
+# pipenv
+**/Pipfile
+**/Pipfile.lock
+
+# readme
+**/*.md
+
+# byte-compiled
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd

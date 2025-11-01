@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: a22f7db3e3af
+Revision ID: c21194bcea13
 Revises: 
-Create Date: 2025-10-31 20:56:03.073072
+Create Date: 2025-11-01 10:13:12.965668
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'a22f7db3e3af'
+revision: str = 'c21194bcea13'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -46,7 +46,8 @@ def upgrade() -> None:
     sa.Column('telegram_user_id', sa.BigInteger(), nullable=False),
     sa.Column('user_messages', sa.String(), nullable=False),
     sa.Column('agent_messages', sa.String(), nullable=False),
-    sa.Column('filters', sa.JSON(), nullable=False),
+    sa.Column('json_filters', sa.JSON(), nullable=False),
+    sa.Column('json_tira', sa.JSON(), nullable=True),
     sa.Column('telegram_phone_number', sa.String(), nullable=False),
     sa.Column('data_created', sa.DateTime(timezone=True), nullable=False),
     sa.PrimaryKeyConstraint('id')

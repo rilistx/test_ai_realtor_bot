@@ -7,8 +7,6 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import BotCommandScopeDefault
 
-from openai import OpenAI
-
 from core.db.initialization import init_db
 
 from core.handlers import handlers
@@ -29,15 +27,10 @@ async def unpacker() -> None:
         ),
     )
 
-    client = OpenAI(
-        api_key=envs.open_api_key
-    )
-
     storage = MemoryStorage()
 
     dispatcher = Dispatcher(
         bot=bot,
-        client=client,
         storage=storage,
     )
 
