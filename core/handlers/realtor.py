@@ -4,7 +4,7 @@ import asyncio
 import aiohttp
 
 from aiogram import Router
-from aiogram.types import Message, ReplyKeyboardRemove
+from aiogram.types import Message, ReplyKeyboardRemove, InputMediaPhoto
 from aiogram.filters import CommandStart, Command, StateFilter
 from aiogram.fsm.context import FSMContext
 
@@ -204,21 +204,6 @@ async def completed(
 ) -> None:
     state_data = await state.get_data()
 
-    text = (
-        "Дякую, я скоро з вами звʼяжуся!"
-    )
-
-    await state.update_data({
-        "agent_messages": state_data["agent_messages"] + "\n\n" + text,
-    })
-
-    reply_markup = ReplyKeyboardRemove()
-
-    await message.answer(
-        text=text,
-        reply_markup=reply_markup,
-    )
-
     url = "https://bots2.tira.com.ua:8443/api/get_apartments"
     payload = {
         "key": envs.tira_api_key,
@@ -247,14 +232,59 @@ async def completed(
     async with aiohttp.ClientSession() as session:
         async with session.post(url, json=payload, headers=headers, ssl=False) as response:
             if response.status == 200:
-                data = await response.json()
+                result = await response.json()
+
+                text = "Ось варіанти, які я підібрав саме для тебе 👇"
+
+                reply_markup = ReplyKeyboardRemove()
+
+                await message.answer(
+                    text=text,
+                    reply_markup=reply_markup
+                )
+
+                for data in result["items"]:
+                    caption = (
+                        f"<b>{data['title']}</b>\n\n"
+                        f"<i>{data['address']['country']} {data['address']['region']} {data['address']['city_type']} {data['address']['city']} {data['address']['street_type']} {data['address']['street']} {data['address']['house_number']}</i>\n\n"
+                        f"💰 Цена: {data['prices']['value']}$\n"
+                        f"📐 Площадь: {data['area_total']} м²\n"
+                        f"🛏 Комнат: {data['rooms']}\n\n"
+                        f"{data['description']}"
+                    )
+
+
+                    await state.update_data({
+                        "agent_messages": state_data["agent_messages"] + "\n\n" + text + "\n\n" + caption,
+                    })
+
+                    if len(json.loads(data['photos'][0])) == 1:
+                        photo = "https://re24.com.ua/" + json.loads(data['photos'][0])[0]["url"]
+
+                        await message.answer_photo(
+                            photo=photo,
+                            caption=caption,
+                        )
+                    elif len(json.loads(data['photos'][0])) > 1:
+                        media = [
+                            InputMediaPhoto(media=f"https://re24.com.ua/{photo["url"]}", caption=caption if num == 0 else None)
+                            for num, photo in enumerate(json.loads(data['photos'][0])[:8])
+                        ]
+
+                        await message.answer_media_group(
+                            media=media,
+                        )
+                    else:
+                        await message.answer(
+                            text=caption,
+                        )
 
                 await UserModel.create(
                     telegram_user_id=state_data["telegram_user_id"],
                     user_messages=state_data["user_messages"],
                     agent_messages=state_data["agent_messages"],
                     json_filters=json.dumps(state_data["filters"]),
-                    json_tira=json.dumps(data),
+                    json_tira=json.dumps(result),
                     telegram_phone_number=str(message.contact.phone_number),
                 )
             else:

@@ -29,6 +29,8 @@ services:
     image: adminer:latest
     container_name: adminer
     restart: on-failure
+    ports:
+      - "8080:8080"
     depends_on:
       - postgres
     networks:
